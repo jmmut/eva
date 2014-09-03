@@ -63,9 +63,29 @@ public class StudyDgvaDBAdaptor implements StudyDBAdaptor {
             long start = System.currentTimeMillis();
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                VariantStudy study = new VariantStudy(rs.getString("display_name"), rs.getString("study_accession"), null, rs.getString("study_description"),
-                        -1, rs.getString("common_name"), rs.getString("scientific_name"), null, null, null, null, 
-                        rs.getString("analysis_type"), "GRCh38", rs.getString("platform_name"), rs.getInt("variant_count"), -1);
+                VariantStudy.StudyType studyType = null;
+                switch (rs.getString("study_type").toLowerCase()) {
+                    case "control set":
+                    case "control-set":
+                        studyType = VariantStudy.StudyType.CONTROL;
+                        break;
+                    case "case set":
+                    case "case-set":
+                        studyType = VariantStudy.StudyType.CASE;
+                        break;
+                    case "case control":
+                    case "case-control":
+                    case "tumor vs. matched-normal":
+                        studyType = VariantStudy.StudyType.CASE_CONTROL;
+                        break;
+                    case "collection":
+                        studyType = VariantStudy.StudyType.COLLECTION;
+                }
+                
+                VariantStudy study = new VariantStudy(rs.getString("display_name"), rs.getString("study_accession"), 
+                        null, rs.getString("study_description"), -1, rs.getString("common_name"), rs.getString("scientific_name"), 
+                        null, null, null, null, studyType, rs.getString("analysis_type"), "GRCh38", rs.getString("platform_name"), 
+                        rs.getInt("variant_count"), -1);
                 result.add(study);
             }
             long end = System.currentTimeMillis();
@@ -114,9 +134,26 @@ public class StudyDgvaDBAdaptor implements StudyDBAdaptor {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                VariantStudy study = new VariantStudy(rs.getString("display_name"), rs.getString("study_accession"), null, rs.getString("study_description"),
-                        -1, rs.getString("common_name"), rs.getString("scientific_name"), null, null, null, null, 
-                        rs.getString("analysis_type"), "GRCh38", rs.getString("platform_name"), rs.getInt("variant_count"), -1);
+                VariantStudy.StudyType studyType = null;
+                switch (rs.getString("study_type").toLowerCase()) {
+                    case "control set":
+                        studyType = VariantStudy.StudyType.CONTROL;
+                        break;
+                    case "case set":
+                        studyType = VariantStudy.StudyType.CASE;
+                        break;
+                    case "case-control":
+                    case "tumor vs. matched-normal":
+                        studyType = VariantStudy.StudyType.CASE_CONTROL;
+                        break;
+                    case "collection":
+                        studyType = VariantStudy.StudyType.COLLECTION;
+                }
+                
+                VariantStudy study = new VariantStudy(rs.getString("display_name"), rs.getString("study_accession"), 
+                        null, rs.getString("study_description"), -1, rs.getString("common_name"), rs.getString("scientific_name"), 
+                        null, null, null, null, studyType, rs.getString("analysis_type"), "GRCh38", rs.getString("platform_name"), 
+                        rs.getInt("variant_count"), -1);
                 result.add(study);
             }
             long end = System.currentTimeMillis();
