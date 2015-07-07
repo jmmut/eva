@@ -20,9 +20,9 @@
  * along with EVA. If not, see <http://www.gnu.org/licenses/>.
  */
 if(window.location.protocol == 'https:'){
-    CELLBASE_HOST = 'https://wwwdev.ebi.ac.uk/cellbase/webservices/rest';
+    CELLBASE_HOST = 'https://wwwdev.ebi.ac.uk/cellbase';
 }else{
-    CELLBASE_HOST = 'http://wwwdev.ebi.ac.uk/cellbase/webservices/rest';
+    CELLBASE_HOST = 'http://wwwdev.ebi.ac.uk/cellbase';
 }
 CELLBASE_VERSION = 'v3';
 
@@ -371,6 +371,8 @@ var AVAILABLE_SPECIES = {
             "text": "Plants",
             "items": [
                 {"text": "Solanum lycopersicum", "assembly": "SL2.40"},
+                {"text": "Zea Mays", "assembly": "AGPv3"},
+                {"text": "Shorgum", "assembly": "Sorbi1"},
             ]
         }
     ]
