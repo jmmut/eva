@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.ac.ebi.eva.commons.mongodb.entities.projections.VariantStudySummary;
 import uk.ac.ebi.eva.commons.mongodb.services.VariantStudySummaryService;
 
+import uk.ac.ebi.eva.lib.metadata.dgva.ArchiveDgvaDBAdaptor;
+import uk.ac.ebi.eva.lib.metadata.dgva.StudyDgvaDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.eva.ArchiveEvaproDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.eva.StudyEvaproDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.shared.ArchiveWSServerHelper;
@@ -47,7 +49,13 @@ import java.util.List;
 public class ArchiveWSServer extends EvaWSServer {
 
     @Autowired
+    private ArchiveDgvaDBAdaptor archiveDgvaDbAdaptor;
+
+    @Autowired
     private ArchiveEvaproDBAdaptor archiveEvaproDbAdaptor;
+
+    @Autowired
+    private StudyDgvaDBAdaptor studyDgvaDbAdaptor;
 
     @Autowired
     private StudyEvaproDBAdaptor studyEvaproDbAdaptor;
@@ -84,8 +92,13 @@ public class ArchiveWSServer extends EvaWSServer {
 
     @RequestMapping(value = "/studies/all", method = RequestMethod.GET)
     public QueryResponse getStudies(@RequestParam(name = "species", required = false) List<String> species,
-                                    @RequestParam(name = "type", required = false) List<String> types) {
-        return archiveWSServerHelper.getStudies(species, types, queryUtils, studyEvaproDbAdaptor, version);
+                                    @RequestParam(name = "type", required = false) List<String> types,
+                                    @RequestParam(name = "structural", defaultValue = "false") boolean structural) {
+        if (structural) {
+            return archiveWSServerHelper.getStudies(species, types, queryUtils, studyDgvaDbAdaptor, version);
+        } else {
+            return archiveWSServerHelper.getStudies(species, types, queryUtils, studyEvaproDbAdaptor, version);
+        }
     }
 
     @RequestMapping(value = "/studies/list", method = RequestMethod.GET)
@@ -99,7 +112,13 @@ public class ArchiveWSServer extends EvaWSServer {
 
     @RequestMapping(value = "/studies/stats", method = RequestMethod.GET)
     public QueryResponse getStudiesStats(@RequestParam(name = "species", required = false) List<String> species,
-                                         @RequestParam(name = "type", required = false) List<String> types) {
-        return archiveWSServerHelper.getStudiesStats(species, types, queryUtils, archiveEvaproDbAdaptor, version);
+                                         @RequestParam(name = "type", required = false) List<String> types,
+                                         @RequestParam(name = "structural", defaultValue = "false") boolean structural) {
+        if (structural) {
+            return archiveWSServerHelper.getStudiesStats(species, types, queryUtils, archiveDgvaDbAdaptor, version);
+        } else {
+            return archiveWSServerHelper.getStudiesStats(species, types, queryUtils, archiveEvaproDbAdaptor, version);
+        }
+
     }
 }
