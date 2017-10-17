@@ -30,8 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.ac.ebi.eva.commons.mongodb.entities.projections.VariantStudySummary;
 import uk.ac.ebi.eva.commons.mongodb.services.VariantStudySummaryService;
 
-import uk.ac.ebi.eva.lib.metadata.dgva.ArchiveDgvaDBAdaptor;
-import uk.ac.ebi.eva.lib.metadata.dgva.StudyDgvaDBAdaptor;
+import uk.ac.ebi.eva.lib.metadata.dgva.ArchiveDgvaDBAdaptorOld;
+import uk.ac.ebi.eva.lib.metadata.dgva.StudyDgvaDBAdaptorOld;
 import uk.ac.ebi.eva.lib.metadata.eva.ArchiveEvaproDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.eva.StudyEvaproDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.shared.ArchiveWSServerHelper;
@@ -49,13 +49,13 @@ import java.util.List;
 public class ArchiveWSServer extends EvaWSServer {
 
     @Autowired
-    private ArchiveDgvaDBAdaptor archiveDgvaDbAdaptor;
+    private ArchiveDgvaDBAdaptorOld archiveDgvaDbAdaptor;
 
     @Autowired
     private ArchiveEvaproDBAdaptor archiveEvaproDbAdaptor;
 
     @Autowired
-    private StudyDgvaDBAdaptor studyDgvaDbAdaptor;
+    private StudyDgvaDBAdaptorOld studyDgvaDbAdaptor;
 
     @Autowired
     private StudyEvaproDBAdaptor studyEvaproDbAdaptor;

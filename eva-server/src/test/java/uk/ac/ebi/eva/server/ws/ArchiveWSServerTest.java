@@ -20,6 +20,9 @@ package uk.ac.ebi.eva.server.ws;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,15 +35,17 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
+
 import uk.ac.ebi.eva.commons.core.models.StudyType;
 import uk.ac.ebi.eva.commons.mongodb.entities.projections.VariantStudySummary;
 import uk.ac.ebi.eva.commons.mongodb.services.VariantStudySummaryService;
-import uk.ac.ebi.eva.lib.metadata.dgva.ArchiveDgvaDBAdaptor;
+import uk.ac.ebi.eva.lib.metadata.dgva.ArchiveDgvaDBAdaptorOld;
+import uk.ac.ebi.eva.lib.metadata.dgva.StudyDgvaDBAdaptorOld;
 import uk.ac.ebi.eva.lib.metadata.eva.ArchiveEvaproDBAdaptor;
-import uk.ac.ebi.eva.lib.metadata.dgva.StudyDgvaDBAdaptor;
 import uk.ac.ebi.eva.lib.metadata.eva.StudyEvaproDBAdaptor;
 import uk.ac.ebi.eva.lib.models.Assembly;
 import uk.ac.ebi.eva.lib.models.VariantStudy;
+import uk.ac.ebi.eva.lib.utils.QueryOptions;
 import uk.ac.ebi.eva.lib.utils.QueryResponse;
 import uk.ac.ebi.eva.lib.utils.QueryResult;
 
@@ -49,20 +54,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.argThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -75,13 +84,13 @@ public class ArchiveWSServerTest {
     private ArchiveEvaproDBAdaptor archiveEvaproDBAdaptor;
 
     @MockBean
-    private ArchiveDgvaDBAdaptor archiveDgvaDBAdaptor;
+    private ArchiveDgvaDBAdaptorOld archiveDgvaDBAdaptor;
 
     @MockBean
     private StudyEvaproDBAdaptor studyEvaproDBAdaptor;
 
     @MockBean
-    private StudyDgvaDBAdaptor studyDgvaDBAdaptor;
+    private StudyDgvaDBAdaptorOld studyDgvaDBAdaptor;
 
     // TODO: merge the three study adaptors into one?
 
@@ -121,7 +130,15 @@ public class ArchiveWSServerTest {
                                                "multi-isolate", StudyType.AGGREGATE, "Whole Genome Sequencing",
                                                "WGSS", "Bos_taurus_UMD_3.1", "GCA_000003055.3", "Illumina",
                                                new URI("http://www.cs1.org"), new String[]{"1", "2"}, 1300, 12, false);
-        given(studyEvaproDBAdaptor.getAllStudies(anyObject()))
+        given(studyEvaproDBAdaptor.getAllStudies(
+                argThat(isQueryOptionsHaving("type", Collections.singletonList("Whole Genome Sequencing")))))
+                .willReturn(encapsulateInQueryResult(study1));
+        given(studyEvaproDBAdaptor.getAllStudies(
+                argThat(isQueryOptionsHaving("species", Collections.singletonList("Human")))))
+                .willReturn(encapsulateInQueryResult(study1, study2));
+        given(studyEvaproDBAdaptor.getAllStudies(argThat(
+                not(anyOf(isQueryOptionsHaving("species", Collections.singletonList("Human")),
+                          isQueryOptionsHaving("type", Collections.singletonList("Whole Genome Sequencing")))))))
                 .willReturn(encapsulateInQueryResult(study1, study2, study3));
         Map<String, Long> studiesGroupedBySpeciesName = Stream.of(study1, study2, study3).collect(
                 Collectors.groupingBy(VariantStudy::getSpeciesCommonName,
@@ -150,7 +167,15 @@ public class ArchiveWSServerTest {
                                                  "multi-isolate", StudyType.AGGREGATE, "Whole Genome Sequencing", "WGS",
                                                  "Bos_taurus_UMD_3.1", "GCA_000003055.3", "Illumina",
                                                  new URI("http://www.cs1.org"), new String[]{"1", "2"}, 1300, 12, false);
-        given(studyDgvaDBAdaptor.getAllStudies(anyObject()))
+        given(studyDgvaDBAdaptor.getAllStudies(
+                argThat(isQueryOptionsHaving("type", Collections.singletonList("Case-Control")))))
+                .willReturn(encapsulateInQueryResult(svStudy1));
+        given(studyDgvaDBAdaptor.getAllStudies(
+                argThat(isQueryOptionsHaving("species", Collections.singletonList("Human")))))
+                .willReturn(encapsulateInQueryResult(svStudy1, svStudy2));
+        given(studyDgvaDBAdaptor.getAllStudies(argThat(
+                not(anyOf(isQueryOptionsHaving("species", Collections.singletonList("Human")),
+                          isQueryOptionsHaving("type", Collections.singletonList("Case-Control")))))))
                   .willReturn(encapsulateInQueryResult(svStudy1, svStudy2, svStudy3));
 
         Map<String, Long> svStudiesGroupedBySpeciesName = Stream.of(svStudy1, svStudy2, svStudy3)
@@ -167,6 +192,37 @@ public class ArchiveWSServerTest {
 
         List<VariantStudySummary> studies = buildVariantStudySummaries();
         given(service.findAll()).willReturn(studies);
+    }
+
+    private Matcher<QueryOptions> isQueryOptionsHaving(String type, List<String> strings) {
+        return new QueryOptionsMatcher(equalTo(type), equalTo(strings));
+    }
+
+    private class QueryOptionsMatcher extends TypeSafeMatcher<QueryOptions> {
+        private final Matcher<String> keyMatcher;
+        private final Matcher<Object> valueMatcher;
+        public QueryOptionsMatcher(Matcher<String> keyMatcher, Matcher<Object> valueMatcher) {
+            this.keyMatcher = keyMatcher;
+            this.valueMatcher = valueMatcher;
+        }
+
+        @Override
+        protected boolean matchesSafely(QueryOptions queryOptions) {
+            for (Map.Entry<String, Object> entry : queryOptions.entrySet()) {
+                if (keyMatcher.matches(entry.getKey()) && valueMatcher.matches(entry.getValue())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("QueryOptions containing [")
+                       .appendDescriptionOf(keyMatcher)
+                       .appendText("->")
+                       .appendDescriptionOf(valueMatcher)
+                       .appendText("]");
+        }
     }
 
     private List<VariantStudySummary> buildVariantStudySummaries() {
@@ -293,16 +349,40 @@ public class ArchiveWSServerTest {
     @Test
     public void testGetStudies() throws URISyntaxException {
         String url = "/v1/meta/studies/all";
-        assertGetStudiesAll(url);
+        assertGetStudiesAll(url, 3);
+    }
+
+    @Test
+    public void testGetStudiesBySpecies() throws URISyntaxException {
+        String url = "/v1/meta/studies/all?species=Human";
+        assertGetStudiesAll(url, 2);
+    }
+
+    @Test
+    public void testGetStudiesBytype() throws URISyntaxException {
+        String url = "/v1/meta/studies/all?type=Whole Genome Sequencing";
+        assertGetStudiesAll(url, 1);
     }
 
     @Test
     public void testGetStudiesStructural() throws URISyntaxException {
         String url = "/v1/meta/studies/all?structural=true";
-        assertGetStudiesAll(url);
+        assertGetStudiesAll(url, 3);
     }
 
-    private void assertGetStudiesAll(String url) {
+    @Test
+    public void testGetStudiesStructuralBySpecies() throws URISyntaxException {
+        String url = "/v1/meta/studies/all?structural=true&species=Human";
+        assertGetStudiesAll(url, 2);
+    }
+
+    @Test
+    public void testGetStudiesStructuralBytype() throws URISyntaxException {
+        String url = "/v1/meta/studies/all?structural=true&type=Case-Control";
+        assertGetStudiesAll(url, 1);
+    }
+
+    private void assertGetStudiesAll(String url, int expectedStudyCount) {
         ResponseEntity<QueryResponse<QueryResult<VariantStudy>>> response = restTemplate.exchange(
                 url, HttpMethod.GET, null,
                 new ParameterizedTypeReference<QueryResponse<QueryResult<VariantStudy>>>() {});
@@ -312,7 +392,7 @@ public class ArchiveWSServerTest {
         assertEquals(1, queryResponse.getResponse().size());
 
         List<VariantStudy> results = queryResponse.getResponse().get(0).getResult();
-        assertTrue(results.size() >= 1);
+        assertEquals(expectedStudyCount, results.size());
 
         assertVariantStudiesAreNotEmpty(results);
     }
